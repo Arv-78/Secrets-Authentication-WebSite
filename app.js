@@ -31,7 +31,8 @@ mongoose.connect("mongodb://localhost:27017/userDB");
 const userSchema = new mongoose.Schema({
   email: String,
   password: String,
-  googleId: String
+  googleId: String,
+  secret: String
 });
 
 //add plugin to schema
@@ -96,16 +97,38 @@ app.get('/register', function(req, res) {
 })
 
 app.get('/secrets', function(req, res) {
-  if (req.isAuthenticated()) {
-    res.render("secrets");
-  } else {
-    res.redirect("/login");
-  }
+  User.find({secret: { $ne: null }}, function(err, foundSecrets){
+    if(err){
+      console.log(err);
+    } else {
+      res.render("secrets",{secretArray: foundSecrets});
+    }
+  })
+})
+
+app.get("/submit", function(req, res){
+  res.render("submit");
 })
 
 app.get('/logout', function(req, res){
   req.logout(); //check passport docs.
   res.redirect('/');
+})
+
+app.post("/submit", function(req, res){
+  let submittedSecret = req.body.secret;
+  User.findById(req.user._id, function(err, foundUser){
+    if(err){
+      console.log(err);
+    } else {
+      if(foundUser){
+        foundUser.secret = submittedSecret;
+        foundUser.save(function(){
+          res.redirect("/secrets")
+        });
+      }
+    }
+  })
 })
 
 app.post('/register', function(req, res) {
